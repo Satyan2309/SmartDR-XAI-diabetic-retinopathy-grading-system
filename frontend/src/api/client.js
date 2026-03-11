@@ -1,6 +1,11 @@
 import axios from 'axios'
 
-const api = axios.create({ baseURL: '/api', timeout: 90000 })
+const BACKEND = import.meta.env.VITE_API_URL || ''
+
+const api = axios.create({
+  baseURL: `${BACKEND}/api`,
+  timeout: 90000
+})
 
 api.interceptors.request.use(cfg => {
   const token = sessionStorage.getItem('sdr_token')
