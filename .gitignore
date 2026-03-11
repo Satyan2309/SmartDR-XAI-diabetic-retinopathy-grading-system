@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.env
+
+# Model (too large for GitHub — we'll host on HuggingFace)
+backend/best_model.pth
+
+# Reports/images generated at runtime
+backend/reports/
+
+# Node
+frontend/node_modules/
+frontend/dist/
+
+# OS
+.DS_Store
+Thumbs.db
