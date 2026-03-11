@@ -9,6 +9,10 @@ from pathlib import Path
 from datetime import datetime, timedelta
 from typing import Optional
 from contextlib import asynccontextmanager
+import gc
+import torch
+torch.set_num_threads(1)
+gc.collect()
 
 import cv2
 import torch
@@ -67,6 +71,7 @@ async def lifespan(app: FastAPI):
     MODEL, DEVICE = await loop.run_in_executor(
         None, lambda: load_model("best_model.pth")
     )
+    gc.collect()          
     print("Model ready. Accepting requests.")
     os.makedirs("reports/images", exist_ok=True)
     yield
