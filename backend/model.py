@@ -56,13 +56,16 @@ def download_model_if_needed(model_path='best_model.pth'):
             raise
 
 
-def load_model(model_path='best_model.pth'):
-    download_model_if_needed(model_path)
-    device = torch.device('cpu')
-    model  = DRGradingModel(num_classes=5)
-    model.load_state_dict(
-        torch.load(model_path, map_location=device)
-    )
+def load_model(path="best_model.pth"):
+    device = torch.device("cpu")
+    
+    model = DRGradingModel()
+    state = torch.load(path, map_location="cpu")
+    model.load_state_dict(state)
     model.eval()
-    print(f"Model loaded successfully from {model_path}")
+    
+    # Reduce memory usage
+    torch.set_num_threads(1)
+    
     return model, device
+ 
