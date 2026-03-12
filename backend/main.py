@@ -1,50 +1,36 @@
 # backend/main.py
 import os
 import io
+import gc
 import uuid
 import asyncio
+import hashlib
 import numpy as np
 from PIL import Image
 from pathlib import Path
 from datetime import datetime, timedelta
 from typing import Optional
 from contextlib import asynccontextmanager
-import gc
-import torch
-torch.set_num_threads(1)
-gc.collect()
 
-import cv2
-import torch
-from fastapi import (
-    FastAPI, UploadFile, File, Form,
-    Depends, HTTPException
-)
+import psycopg2
+import psycopg2.extras
+
+from fastapi import FastAPI, UploadFile, File, Form, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from pydantic import BaseModel
+from dotenv import load_dotenv
 
-from model      import load_model
-from utils      import check_quality, preprocess, predict, GRADE_INFO
-from database   import (
+from database import (
     add_record, get_doctor_records,
     search_records, delete_record,
     get_record_by_id
 )
 from report_gen import generate_pdf_report
 
-from pytorch_grad_cam import GradCAMPlusPlus
-from pytorch_grad_cam.utils.image import show_cam_on_image
-from pytorch_grad_cam.utils.model_targets import ClassifierOutputTarget
-
-import psycopg2
-import psycopg2.extras
-import hashlib
-
-from dotenv import load_dotenv
 load_dotenv()
 
 # ─────────────────────────────────────────
@@ -58,7 +44,7 @@ pwd_context   = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 
 # ─────────────────────────────────────────
-#  MODEL — async load so port binds first
+#  MODEL — lazy loaded so port binds first
 # ─────────────────────────────────────────
 MODEL  = None
 DEVICE = None
@@ -66,12 +52,18 @@ DEVICE = None
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global MODEL, DEVICE
-    print("Loading model in background...")
+    print("Server started. Loading model in background...")
+
+    def _load():
+        import torch
+        torch.set_num_threads(1)
+        from model import load_model
+        model, device = load_model("best_model.pth")
+        gc.collect()
+        return model, device
+
     loop = asyncio.get_event_loop()
-    MODEL, DEVICE = await loop.run_in_executor(
-        None, lambda: load_model("best_model.pth")
-    )
-    gc.collect()          
+    MODEL, DEVICE = await loop.run_in_executor(None, _load)
     print("Model ready. Accepting requests.")
     os.makedirs("reports/images", exist_ok=True)
     yield
@@ -188,7 +180,10 @@ def register(req: RegisterRequest):
     conn = get_db_connection()
     try:
         with conn.cursor() as cur:
-            cur.execute("SELECT COUNT(*) FROM doctors WHERE email=%s", (req.email.strip(),))
+            cur.execute(
+                "SELECT COUNT(*) FROM doctors WHERE email=%s",
+                (req.email.strip(),)
+            )
             if cur.fetchone()[0] > 0:
                 raise HTTPException(status_code=400, detail="Email already registered")
 
@@ -291,7 +286,16 @@ async def scan_image(
     doctor=Depends(get_current_doctor)
 ):
     if MODEL is None:
-        raise HTTPException(status_code=503, detail="Model still loading, please wait a moment and retry.")
+        raise HTTPException(
+            status_code=503,
+            detail="Model is still loading. Please wait 30 seconds and retry."
+        )
+
+    # Lazy imports — only loaded when scan is actually called
+    from utils import check_quality, preprocess, predict, GRADE_INFO
+    from pytorch_grad_cam import GradCAMPlusPlus
+    from pytorch_grad_cam.utils.image import show_cam_on_image
+    from pytorch_grad_cam.utils.model_targets import ClassifierOutputTarget
 
     try:
         contents    = await file.read()
@@ -304,7 +308,7 @@ async def scan_image(
     if not quality_ok:
         raise HTTPException(status_code=422, detail=f"Quality check failed: {quality_msg}")
 
-    image_tensor, enhanced = preprocess(image_array)
+    image_tensor, enhanced       = preprocess(image_array)
     grade, confidence, all_probs = predict(MODEL, image_tensor, DEVICE)
 
     cam  = GradCAMPlusPlus(model=MODEL, target_layers=[MODEL.backbone.conv_head])
@@ -359,7 +363,10 @@ def save_record(
 ):
     import base64
 
-    all_probs = np.array([prob_0/100, prob_1/100, prob_2/100, prob_3/100, prob_4/100])
+    all_probs = np.array([
+        prob_0/100, prob_1/100, prob_2/100,
+        prob_3/100, prob_4/100
+    ])
     record_id = add_record(
         doctor_id=doctor["doctor_id"],
         doctor_name=doctor["name"],
