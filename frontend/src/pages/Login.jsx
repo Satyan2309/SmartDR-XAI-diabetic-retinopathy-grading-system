@@ -167,12 +167,6 @@ export default function Login() {
               {busy && <Loader2 size={15} className="animate-spin" />}
               {tab === 'login' ? 'Sign In' : 'Create Account'}
             </button>
-
-            {tab === 'login' && (
-              <p className="text-xs text-center text-slate-400">
-                Demo: <span className="font-mono text-slate-600">demo@smartdr.com</span> / <span className="font-mono text-slate-600">demo123</span>
-              </p>
-            )}
           </form>
         </div>
       </div>
