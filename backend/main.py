@@ -300,15 +300,18 @@ async def scan_image(
             detail="Model is still loading. Please wait 30 seconds and retry."
         )
 
-    # Lazy imports — only loaded when scan is actually called
+    # Lazy imports
+    import torch
     from utils import check_quality, preprocess, predict, GRADE_INFO
     from pytorch_grad_cam import GradCAMPlusPlus
     from pytorch_grad_cam.utils.image import show_cam_on_image
     from pytorch_grad_cam.utils.model_targets import ClassifierOutputTarget
 
     try:
-        contents    = await file.read()
-        image       = Image.open(io.BytesIO(contents)).convert("RGB")
+        contents = await file.read()
+        image    = Image.open(io.BytesIO(contents)).convert("RGB")
+        # ── Resize to max 512px to reduce CPU processing time ──
+        image.thumbnail((512, 512), Image.LANCZOS)
         image_array = np.array(image)
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Invalid image: {e}")
@@ -317,8 +320,11 @@ async def scan_image(
     if not quality_ok:
         raise HTTPException(status_code=422, detail=f"Quality check failed: {quality_msg}")
 
-    image_tensor, enhanced       = preprocess(image_array)
-    grade, confidence, all_probs = predict(MODEL, image_tensor, DEVICE)
+    image_tensor, enhanced = preprocess(image_array)
+
+    # ── torch.no_grad() speeds up inference significantly ──
+    with torch.no_grad():
+        grade, confidence, all_probs = predict(MODEL, image_tensor, DEVICE)
 
     cam  = GradCAMPlusPlus(model=MODEL, target_layers=[MODEL.backbone.conv_head])
     gcam = cam(
