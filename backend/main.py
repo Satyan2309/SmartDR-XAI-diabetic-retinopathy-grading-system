@@ -57,6 +57,15 @@ async def lifespan(app: FastAPI):
     def _load():
         import torch
         torch.set_num_threads(1)
+
+        # Pre-build matplotlib font cache so first scan isn't slow
+        import matplotlib
+        try:
+            matplotlib.font_manager._load_fontmanager(try_read_cache=False)
+            print("Matplotlib font cache built.")
+        except Exception:
+            pass  # non-critical, ignore if it fails
+
         from model import load_model
         model, device = load_model("best_model.pth")
         gc.collect()
