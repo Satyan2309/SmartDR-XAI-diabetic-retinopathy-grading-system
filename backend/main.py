@@ -55,21 +55,12 @@ async def lifespan(app: FastAPI):
     print("Server started. Loading model in background...")
 
     def _load():
-        import torch
-        torch.set_num_threads(1)
-
-        # Pre-build matplotlib font cache so first scan isn't slow
-        import matplotlib
-        try:
-            matplotlib.font_manager._load_fontmanager(try_read_cache=False)
-            print("Matplotlib font cache built.")
-        except Exception:
-            pass  # non-critical, ignore if it fails
-
-        from model import load_model
-        model, device = load_model("best_model.pth")
-        gc.collect()
-        return model, device
+    import torch
+    torch.set_num_threads(1)
+    from model import load_model
+    model, device = load_model("best_model.pth")
+    gc.collect()
+    return model, device
 
     loop = asyncio.get_event_loop()
     MODEL, DEVICE = await loop.run_in_executor(None, _load)
