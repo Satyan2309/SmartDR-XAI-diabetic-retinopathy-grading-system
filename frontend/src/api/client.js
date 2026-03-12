@@ -4,7 +4,7 @@ const BACKEND = import.meta.env.VITE_API_URL || ''
 
 const api = axios.create({
   baseURL: `${BACKEND}/api`,
-  timeout: 90000
+  timeout: 180000
 })
 
 api.interceptors.request.use(cfg => {
