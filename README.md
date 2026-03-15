@@ -10,8 +10,6 @@
 
 **Multi-Stage Diabetic Retinopathy Grading with Explainable AI**
 
-*Lloyd Institute of Engineering & Technology | CSE-DS | BTech 7th Semester*
-
 </div>
 
 ---
