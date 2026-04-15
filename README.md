@@ -290,6 +290,14 @@ The full model training code — including data loading, augmentation, Efficient
 The trained model weights (`best_model.pth`) were exported from this notebook and are used directly by the FastAPI backend for inference.
 
 ---
+---
+
+## 👥 Team Members
+
+- **Satyan Sinha**
+- **Rishijeet Sinha**
+
+---
 
 ## 📄 License
 
