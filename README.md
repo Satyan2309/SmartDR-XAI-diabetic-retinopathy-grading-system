@@ -26,7 +26,12 @@
 
 
 ---
+## 👥 Team Members
 
+- **Satyan Sinha**
+- **Rishijeet Sinha**
+
+---
 
 ## 📖 What is SmartDR-XAI?
 
