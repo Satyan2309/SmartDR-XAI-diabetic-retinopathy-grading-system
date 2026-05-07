@@ -297,12 +297,7 @@ The trained model weights (`best_model.pth`) were exported from this notebook an
 ---
 ---
 
-## 👥 Team Members
 
-- **Satyan Sinha**
-- **Rishijeet Sinha**
-
----
 
 ## 📄 License
 
