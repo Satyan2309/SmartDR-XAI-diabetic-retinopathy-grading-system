@@ -231,7 +231,7 @@ GET /api/records/{id}/pdf → fpdf2 generates report with all images
 - JWT (JSON Web Tokens) stored in `sessionStorage`
 - Token auto-attached to every request via Axios interceptor
 - Auto-logout on 401 response
-- Passwords hashed with SHA-256 before storage
+
 
 ---
 
