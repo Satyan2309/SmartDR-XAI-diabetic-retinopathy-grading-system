@@ -91,7 +91,7 @@ export default function Login() {
         </div>
 
         <p className="text-slate-600 text-xs">
-          Lloyd Institute of Engineering & Technology · CSE-DS · 2024–25
+         
         </p>
       </div>
 
